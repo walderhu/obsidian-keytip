@@ -142,6 +142,33 @@ function shortcutText(modifiers, key) {
   return parts.join(" + ");
 }
 
+function hotkeyKeyFromEvent(event) {
+  const codeKeys = {
+    Backquote: "`",
+    Minus: "-",
+    Equal: "=",
+    BracketLeft: "[",
+    BracketRight: "]",
+    Backslash: "\\",
+    Semicolon: ";",
+    Quote: "'",
+    Comma: ",",
+    Period: ".",
+    Slash: "/",
+    Space: "Space",
+  };
+  if (codeKeys[event.code]) {
+    return codeKeys[event.code];
+  }
+  if (/^Key[A-Z]$/.test(event.code)) {
+    return event.code.slice(3);
+  }
+  if (/^Digit[0-9]$/.test(event.code)) {
+    return event.code.slice(5);
+  }
+  return normalizeKey(event.key);
+}
+
 class KeyTipModal extends Modal {
   constructor(plugin) {
     super(plugin.app);
@@ -165,15 +192,10 @@ class KeyTipModal extends Modal {
 
     const header = this.contentEl.createDiv({ cls: "key-tip-header" });
     header.createSpan({ cls: "key-tip-layout-label", text: "Клавиатура 75%" });
-    header.createEl("button", {
-      cls: "key-tip-refresh",
-      text: "Обновить",
-      attr: { type: "button" },
-    }).addEventListener("click", () => this.render());
 
     this.contentEl.createDiv({
       cls: "key-tip-help",
-      text: "Наведите на клавишу. Удерживайте Ctrl, Shift или Alt либо кликните их для фиксации слоя.",
+      text: "Наведите на клавишу или кликните ее для поиска в Hotkeys. Ctrl, Shift и Alt переключают слой.",
     });
 
     const layer = this.contentEl.createDiv({ cls: "key-tip-layer" });
@@ -240,6 +262,7 @@ class KeyTipModal extends Modal {
     }
 
     const actions = assignments.get(hotkeyId(modifiers, keyInfo.key)) || [];
+    const actionNames = actions.map((action) => action.name);
     const combination = shortcutText(modifiers, keyInfo.label);
     const button = parent.createEl("button", {
       cls: `key-tip-key key-tip-${keyInfo.width || "normal"}`,
@@ -247,10 +270,14 @@ class KeyTipModal extends Modal {
       attr: { type: "button" },
     });
     button.toggleClass("has-command", actions.length > 0);
+    button.toggleClass("has-conflict", actions.length > 1);
     button.setAttr(
       "title",
-      actions.length ? `${combination}: ${actions.join("; ")}` : `${combination}: действие не назначено`
+      actions.length
+        ? `${combination}: ${actionNames.join("; ")}${actions.length > 1 ? " (конфликт)" : ""}`
+        : `${combination}: действие не назначено`
     );
+    button.addEventListener("click", () => this.plugin.openHotkeySearch(combination, actions));
     button.addEventListener("mouseenter", () => {
       if (!this.detailEl) {
         return;
@@ -261,7 +288,10 @@ class KeyTipModal extends Modal {
         this.detailEl.createDiv({ cls: "key-tip-unassigned", text: "Действие не назначено" });
         return;
       }
-      actions.forEach((action) => this.detailEl.createDiv({ cls: "key-tip-action", text: action }));
+      if (actions.length > 1) {
+        this.detailEl.createDiv({ cls: "key-tip-conflict-note", text: "Конфликт: сочетание назначено несколько раз" });
+      }
+      actions.forEach((action) => this.detailEl.createDiv({ cls: "key-tip-action", text: action.name }));
     });
     this.keyEls.push(button);
   }
@@ -322,6 +352,7 @@ class KeyTipPlugin extends Plugin {
   }
 
   onunload() {
+    this.stopHotkeyCapture();
     this.modal?.close();
   }
 
@@ -329,6 +360,174 @@ class KeyTipPlugin extends Plugin {
     this.modal?.close();
     this.modal = new KeyTipModal(this);
     this.modal.open();
+  }
+
+  openHotkeySearch(combination, actions) {
+    this.modal?.close();
+    const settings = this.app.setting;
+    if (!settings?.openTabById) {
+      return;
+    }
+    settings.open?.();
+    settings.openTabById("hotkeys");
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => this.filterHotkeys(combination, actions));
+    });
+  }
+
+  filterHotkeys(combination, actions = []) {
+    const tab = this.app.setting?.settingTabs?.find((settingTab) => settingTab.id === "hotkeys");
+    const container = tab?.containerEl || document.querySelector(".hotkey-list-container")?.parentElement;
+    if (!container) {
+      return;
+    }
+    const input = container.querySelector("input[type='search'], input[type='text'], input");
+    if (input) {
+      this.setHotkeyFilterValue(input, "");
+      if (!input.dataset.keyTipFilterBound) {
+        input.dataset.keyTipFilterBound = "true";
+        input.addEventListener("input", () => {
+          if (input.value.trim()) {
+            this.clearHotkeyFilter(container);
+          }
+        });
+      }
+    }
+    window.requestAnimationFrame(() => {
+      this.ensureHotkeyFilterControls(container);
+      this.applyHotkeyFilter(container, combination, actions);
+    });
+  }
+
+  setHotkeyFilterValue(input, value) {
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    if (setter) {
+      setter.call(input, value);
+    } else {
+      input.value = value;
+    }
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    input.focus();
+  }
+
+  applyHotkeyFilter(container, combination, actions) {
+    this.clearHotkeyRows(container);
+    const list = container.querySelector(".hotkey-list-container") || container;
+    const actionNames = new Set(actions.map((action) => action.name));
+    const rows = list.querySelectorAll(".setting-item:not(.setting-item-heading)");
+    rows.forEach((row) => {
+      const name = row.querySelector(".setting-item-name")?.textContent?.trim();
+      row.toggleClass("key-tip-hotkey-hidden", !actionNames.has(name));
+    });
+
+    this.activeHotkeyFilter = { combination, actions, container };
+    const button = container.querySelector(".key-tip-hotkey-capture");
+    if (button) {
+      button.setText(`⌨ ${combination}`);
+      button.addClass("is-active");
+    }
+  }
+
+  ensureHotkeyFilterControls(container) {
+    const input = container.querySelector("input[type='search'], input[type='text'], input");
+    const searchContainer = input?.closest(".search-input-container") || input?.parentElement;
+    const existingControls = container.querySelector(".key-tip-hotkey-controls");
+    if (existingControls) {
+      if (searchContainer && existingControls.parentElement === searchContainer) {
+        searchContainer.insertAdjacentElement("afterend", existingControls);
+      }
+      return;
+    }
+    const controls = document.createElement("div");
+    controls.className = "key-tip-hotkey-controls";
+    const capture = controls.createEl("button", {
+      cls: "key-tip-hotkey-capture",
+      text: "⌨ По сочетанию",
+      attr: { type: "button", title: "Фильтровать команды по нажатому сочетанию" },
+    });
+    capture.addEventListener("click", () => this.startHotkeyCapture(container));
+    const reset = controls.createEl("button", {
+      cls: "key-tip-hotkey-reset",
+      text: "×",
+      attr: { type: "button", title: "Сбросить фильтр сочетания" },
+    });
+    reset.addEventListener("click", () => this.clearHotkeyFilter(container));
+    if (searchContainer) {
+      searchContainer.insertAdjacentElement("afterend", controls);
+    } else {
+      container.prepend(controls);
+    }
+  }
+
+  startHotkeyCapture(container) {
+    this.stopHotkeyCapture();
+    const button = container.querySelector(".key-tip-hotkey-capture");
+    button?.setText("Нажмите сочетание...");
+    button?.addClass("is-recording");
+    this.hotkeyCaptureHandler = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        this.stopHotkeyCapture();
+        this.updateHotkeyFilterButton(container);
+        return;
+      }
+      if (["Control", "Meta", "Alt", "Shift"].includes(event.key)) {
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const modifiers = [];
+      if ((Platform.isMacOS && event.metaKey) || (!Platform.isMacOS && event.ctrlKey)) {
+        modifiers.push("Mod");
+      }
+      if (event.altKey) {
+        modifiers.push("Alt");
+      }
+      if (event.shiftKey) {
+        modifiers.push("Shift");
+      }
+      const key = hotkeyKeyFromEvent(event);
+      const actions = this.getAssignments().get(hotkeyId(modifiers, key)) || [];
+      this.stopHotkeyCapture();
+      this.applyHotkeyFilter(container, shortcutText(modifiers, key), actions);
+    };
+    window.addEventListener("keydown", this.hotkeyCaptureHandler, true);
+  }
+
+  stopHotkeyCapture() {
+    if (this.hotkeyCaptureHandler) {
+      window.removeEventListener("keydown", this.hotkeyCaptureHandler, true);
+      this.hotkeyCaptureHandler = null;
+    }
+    document.querySelectorAll(".key-tip-hotkey-capture.is-recording").forEach((button) => {
+      button.removeClass("is-recording");
+    });
+  }
+
+  updateHotkeyFilterButton(container) {
+    const button = container.querySelector(".key-tip-hotkey-capture");
+    if (!button) {
+      return;
+    }
+    const active = this.activeHotkeyFilter?.container === container;
+    button.setText(active ? `⌨ ${this.activeHotkeyFilter.combination}` : "⌨ По сочетанию");
+    button.toggleClass("is-active", active);
+  }
+
+  clearHotkeyRows(container) {
+    container.querySelectorAll(".key-tip-hotkey-hidden").forEach((row) => {
+      row.removeClass("key-tip-hotkey-hidden");
+    });
+  }
+
+  clearHotkeyFilter(container) {
+    this.stopHotkeyCapture();
+    this.clearHotkeyRows(container);
+    if (this.activeHotkeyFilter?.container === container) {
+      this.activeHotkeyFilter = null;
+    }
+    this.updateHotkeyFilterButton(container);
   }
 
   handleModifierEvent(event, pressed) {
@@ -352,7 +551,7 @@ class KeyTipPlugin extends Plugin {
       hotkeys.forEach((hotkey) => {
         const id = hotkeyId(hotkey.modifiers, hotkey.key);
         const actions = assignments.get(id) || [];
-        actions.push(command.name || command.id);
+        actions.push({ id: command.id, name: command.name || command.id });
         assignments.set(id, actions);
       });
     });

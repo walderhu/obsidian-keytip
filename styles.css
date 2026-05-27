@@ -20,7 +20,6 @@
   font-weight: var(--font-semibold);
 }
 
-.key-tip-refresh,
 .key-tip-clear {
   padding: 0.28rem 0.65rem;
   border: 1px solid var(--background-modifier-border);
@@ -114,7 +113,7 @@
   color: #e2e5e8;
   font-size: var(--font-ui-smaller);
   line-height: 1;
-  cursor: default;
+  cursor: pointer;
 }
 
 .key-tip-key.has-command {
@@ -125,7 +124,21 @@
     0 0 0 1px var(--interactive-accent),
     0 1px 2px rgba(0, 0, 0, 0.62);
   color: #f5f6f7;
-  cursor: help;
+  cursor: pointer;
+}
+
+.key-tip-key:not(.key-tip-modifier):not(.is-decorative):hover {
+  filter: brightness(1.13);
+}
+
+.key-tip-key.has-conflict {
+  border-color: #cf5260;
+  background: linear-gradient(145deg, #69373d, #46252b);
+  box-shadow:
+    inset 1px 1px 1px rgba(255, 232, 235, 0.14),
+    0 0 0 1px #cf5260,
+    0 1px 2px rgba(0, 0, 0, 0.62);
+  color: #ffdfe3;
 }
 
 .key-tip-key.key-tip-modifier {
@@ -144,6 +157,7 @@
 .key-tip-key.is-decorative:disabled {
   opacity: 1;
   color: #e2e5e8;
+  cursor: default;
 }
 
 .key-tip-row-1 .key-tip-key {
@@ -216,6 +230,52 @@
   color: var(--text-normal);
 }
 
+.key-tip-conflict-note {
+  margin-bottom: 0.35rem;
+  color: #e36c78;
+  font-weight: var(--font-semibold);
+}
+
 .key-tip-unassigned {
   color: var(--text-faint);
+}
+
+.key-tip-hotkey-hidden {
+  display: none !important;
+}
+
+.key-tip-hotkey-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  vertical-align: middle;
+  margin-left: 0.45rem;
+}
+
+.key-tip-hotkey-capture,
+.key-tip-hotkey-reset {
+  height: var(--input-height);
+  padding: 0 var(--size-4-2);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--interactive-normal);
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.key-tip-hotkey-capture.is-active {
+  border-color: var(--interactive-accent);
+  color: var(--text-accent);
+}
+
+.key-tip-hotkey-capture.is-recording {
+  border-color: #cf5260;
+  color: #e36c78;
+}
+
+.key-tip-hotkey-reset {
+  width: var(--input-height);
+  padding: 0;
 }
