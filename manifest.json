@@ -1,0 +1,9 @@
+{
+  "id": "key-tip",
+  "name": "Key Tip",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "description": "Explore assigned hotkeys on a visual keyboard with modifier layers.",
+  "author": "Denis",
+  "isDesktopOnly": true
+}

@@ -1,0 +1,156 @@
+.key-tip-modal {
+  width: min(980px, 96vw);
+}
+
+.key-tip-modal .modal-content {
+  overflow-x: auto;
+}
+
+.key-tip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.key-tip-layout-label {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-semibold);
+}
+
+.key-tip-refresh,
+.key-tip-clear {
+  padding: 0.28rem 0.65rem;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.key-tip-help {
+  margin-bottom: 0.85rem;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.45;
+}
+
+.key-tip-layer {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0.38rem;
+  height: 2.1rem;
+  margin-bottom: 0.8rem;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  overflow: hidden;
+}
+
+.key-tip-layer-empty {
+  color: var(--text-faint);
+}
+
+.key-tip-chip {
+  padding: 0.18rem 0.42rem;
+  border-radius: var(--radius-s);
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-weight: var(--font-medium);
+}
+
+.key-tip-board {
+  width: max-content;
+  margin: 0 auto;
+  padding: 0.5rem;
+  border-radius: var(--radius-m);
+  background: var(--background-primary-alt);
+}
+
+.key-tip-row {
+  display: flex;
+  gap: 0.3rem;
+  margin-bottom: 0.3rem;
+}
+
+.key-tip-spacer {
+  width: 0.55rem;
+  height: 2.45rem;
+}
+
+.key-tip-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.45rem;
+  height: 2.45rem;
+  padding: 0.2rem;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  cursor: default;
+}
+
+.key-tip-key.has-command {
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+  cursor: help;
+}
+
+.key-tip-key.key-tip-modifier {
+  cursor: pointer;
+}
+
+.key-tip-key.key-tip-modifier.is-active {
+  border-color: var(--interactive-accent);
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.key-tip-wide {
+  width: 3.6rem;
+}
+
+.key-tip-xwide {
+  width: 5rem;
+}
+
+.key-tip-shift {
+  width: 5.8rem;
+}
+
+.key-tip-laptop-space {
+  width: 14.2rem;
+}
+
+.key-tip-detail {
+  box-sizing: border-box;
+  height: 5.25rem;
+  margin-top: 0.9rem;
+  padding: 0.72rem 0.8rem;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  overflow-y: auto;
+}
+
+.key-tip-combination {
+  margin-bottom: 0.38rem;
+  color: var(--text-accent);
+  font-weight: var(--font-semibold);
+}
+
+.key-tip-action {
+  margin-top: 0.22rem;
+  color: var(--text-normal);
+}
+
+.key-tip-unassigned {
+  color: var(--text-faint);
+}
