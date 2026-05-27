@@ -4,22 +4,21 @@ const MODIFIER_ORDER = ["Mod", "Alt", "Shift"];
 
 const KEYBOARD_ROWS = [
   [
-    { key: "Escape", label: "Esc", width: "wide" },
+    { key: "Escape", label: "Esc" },
     { key: "F1", label: "F1" },
     { key: "F2", label: "F2" },
     { key: "F3", label: "F3" },
     { key: "F4", label: "F4" },
-    { spacer: true },
     { key: "F5", label: "F5" },
     { key: "F6", label: "F6" },
     { key: "F7", label: "F7" },
     { key: "F8", label: "F8" },
-    { spacer: true },
     { key: "F9", label: "F9" },
     { key: "F10", label: "F10" },
     { key: "F11", label: "F11" },
     { key: "F12", label: "F12" },
     { key: "Delete", label: "Del" },
+    { decorative: true, label: "", className: "key-tip-power" },
   ],
   [
     { key: "`", label: "`" },
@@ -36,7 +35,6 @@ const KEYBOARD_ROWS = [
     { key: "-", label: "-" },
     { key: "=", label: "=" },
     { key: "Backspace", label: "Backspace", width: "xwide" },
-    { key: "Home", label: "Home" },
   ],
   [
     { key: "Tab", label: "Tab", width: "wide" },
@@ -53,7 +51,6 @@ const KEYBOARD_ROWS = [
     { key: "[", label: "[" },
     { key: "]", label: "]" },
     { key: "\\", label: "\\", width: "wide" },
-    { key: "PageUp", label: "PgUp" },
   ],
   [
     { key: "CapsLock", label: "Caps", width: "xwide" },
@@ -69,7 +66,6 @@ const KEYBOARD_ROWS = [
     { key: ";", label: ";" },
     { key: "'", label: "'" },
     { key: "Enter", label: "Enter", width: "xwide" },
-    { key: "PageDown", label: "PgDn" },
   ],
   [
     { modifier: "Shift", label: "Shift", width: "shift" },
@@ -84,19 +80,18 @@ const KEYBOARD_ROWS = [
     { key: ".", label: "." },
     { key: "/", label: "/" },
     { modifier: "Shift", label: "Shift", width: "shift" },
-    { key: "End", label: "End" },
   ],
   [
     { modifier: "Mod", label: "Ctrl", width: "wide" },
+    { decorative: true, label: "Fn" },
+    { decorative: true, label: "⊞" },
     { modifier: "Alt", label: "Alt", width: "wide" },
     { key: "Space", label: "Space", width: "laptop-space" },
     { modifier: "Alt", label: "Alt", width: "wide" },
     { modifier: "Mod", label: "Ctrl", width: "wide" },
-    { spacer: true },
-    { key: "ArrowLeft", label: "Left" },
-    { key: "ArrowUp", label: "Up" },
-    { key: "ArrowDown", label: "Down" },
-    { key: "ArrowRight", label: "Right" },
+    { key: "ArrowLeft", label: "←" },
+    { arrowStack: true },
+    { key: "ArrowRight", label: "→" },
   ],
 ];
 
@@ -169,7 +164,7 @@ class KeyTipModal extends Modal {
     this.keyEls = [];
 
     const header = this.contentEl.createDiv({ cls: "key-tip-header" });
-    header.createSpan({ cls: "key-tip-layout-label", text: "Клавиатура 80%" });
+    header.createSpan({ cls: "key-tip-layout-label", text: "Клавиатура 75%" });
     header.createEl("button", {
       cls: "key-tip-refresh",
       text: "Обновить",
@@ -202,8 +197,8 @@ class KeyTipModal extends Modal {
     }
 
     const board = this.contentEl.createDiv({ cls: "key-tip-board" });
-    KEYBOARD_ROWS.forEach((row) => {
-      const rowEl = board.createDiv({ cls: "key-tip-row" });
+    KEYBOARD_ROWS.forEach((row, index) => {
+      const rowEl = board.createDiv({ cls: `key-tip-row key-tip-row-${index + 1}` });
       row.forEach((key) => this.renderKey(rowEl, key, activeModifiers, assignments));
     });
 
@@ -212,8 +207,23 @@ class KeyTipModal extends Modal {
   }
 
   renderKey(parent, keyInfo, modifiers, assignments) {
+    if (keyInfo.arrowStack) {
+      const stack = parent.createDiv({ cls: "key-tip-arrow-stack" });
+      this.renderKey(stack, { key: "ArrowUp", label: "↑" }, modifiers, assignments);
+      this.renderKey(stack, { key: "ArrowDown", label: "↓" }, modifiers, assignments);
+      return;
+    }
     if (keyInfo.spacer) {
       parent.createDiv({ cls: "key-tip-spacer" });
+      return;
+    }
+    if (keyInfo.decorative) {
+      const button = parent.createEl("button", {
+        cls: `key-tip-key is-decorative ${keyInfo.className || ""}`,
+        text: keyInfo.label,
+        attr: { type: "button", disabled: "true" },
+      });
+      button.setAttr("aria-hidden", "true");
       return;
     }
     if (keyInfo.modifier) {
